@@ -16,6 +16,7 @@ export const restaurantAPI = {
   getAll: () => api.get('/restaurants'),
   create: (data) => api.post('/restaurants', data),
   update: (id, data) => api.put(`/restaurants/${id}`, data),
+  delete: (id) => api.delete(`/restaurants/${id}`),
 };
 
 // Menu API calls

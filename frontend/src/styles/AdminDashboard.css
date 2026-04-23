@@ -95,17 +95,17 @@
 
 /* ===== Main Content ===== */
 .admin-main {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 1.5rem 2rem;
+  width: 100%;
+  margin: 0;
+  padding: 1.5rem 1rem;
 }
 
 .admin-card {
   background: white;
-  border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(0, 0, 0, 0.04);
-  overflow: hidden;
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
+  overflow: visible;
   transition: all 0.3s ease;
 }
 
@@ -128,7 +128,7 @@
 }
 
 .admin-card-body {
-  padding: 1.5rem;
+  padding: 1rem;
 }
 
 /* ===== Form Elements ===== */
@@ -262,10 +262,16 @@
 /* ===== Tables ===== */
 .admin-table {
   background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(0, 0, 0, 0.04);
+  border-radius: 0;
+  overflow: visible;
+  box-shadow: none;
+  border: none;
+  width: 100%;
+}
+
+.admin-table table {
+  width: 100%;
+  border-collapse: collapse;
 }
 
 .admin-table-header {

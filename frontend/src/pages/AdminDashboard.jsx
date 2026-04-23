@@ -14,6 +14,8 @@ const AdminDashboard = () => {
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAddRestaurant, setShowAddRestaurant] = useState(false);
+  const [showEditRestaurant, setShowEditRestaurant] = useState(false);
+  const [editingRestaurant, setEditingRestaurant] = useState(null);
   const [showAddMenuItemModal, setShowAddMenuItemModal] = useState(false);
   const [selectedCategoryTab, setSelectedCategoryTab] = useState('all');
   const [orderFilter, setOrderFilter] = useState('all');
@@ -190,6 +192,29 @@ const AdminDashboard = () => {
       setNewRestaurant({ name: '', description: '', address: '', phone: '', email: '' });
     } catch (error) {
       console.error('Error adding restaurant:', error);
+    }
+  };
+
+  const handleEditRestaurant = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await restaurantAPI.update(editingRestaurant._id, editingRestaurant);
+      setRestaurants(restaurants.map(r => r._id === editingRestaurant._id ? response.data : r));
+      setShowEditRestaurant(false);
+      setEditingRestaurant(null);
+    } catch (error) {
+      console.error('Error updating restaurant:', error);
+    }
+  };
+
+  const handleDeleteRestaurant = async (restaurantId) => {
+    if (window.confirm('Are you sure you want to delete this restaurant?')) {
+      try {
+        await restaurantAPI.delete(restaurantId);
+        setRestaurants(restaurants.filter(r => r._id !== restaurantId));
+      } catch (error) {
+        console.error('Error deleting restaurant:', error);
+      }
     }
   };
 
@@ -551,7 +576,7 @@ const AdminDashboard = () => {
                                 </span>
                               </td>
                               <td className="admin-table-cell">
-                                <div className="flex gap-2">
+                                <div className="flex" style={{ gap: '40px' }}>
                                   <button
                                     onClick={() => updateOrderStatus(order._id, 'preparing')}
                                     className="admin-btn admin-btn-secondary text-sm"
@@ -856,114 +881,221 @@ const AdminDashboard = () => {
                 Add New Restaurant
               </button>
               {showAddRestaurant && (
-                <div className="admin-card" style={{ marginTop: '1.5rem' }}>
-                  <div className="admin-card-header">
-                    <h3 className="admin-card-title">Add New Restaurant</h3>
-                  </div>
-                  <div className="admin-card-body">
-                    <form onSubmit={handleAddRestaurant} className="admin-form">
-                      <div className="admin-form-group">
-                        <label className="admin-label">Restaurant Name</label>
-                        <input
-                          type="text"
-                          placeholder="Restaurant Name"
-                          value={newRestaurant.name}
-                          onChange={(e) => setNewRestaurant({ ...newRestaurant, name: e.target.value })}
-                          className="admin-input"
-                          required
-                        />
-                      </div>
-                      <div className="admin-form-group">
-                        <label className="admin-label">Email</label>
-                        <input
-                          type="email"
-                          placeholder="Email"
-                          value={newRestaurant.email}
-                          onChange={(e) => setNewRestaurant({ ...newRestaurant, email: e.target.value })}
-                          className="admin-input"
-                          required
-                        />
-                      </div>
-                      <div className="admin-form-group">
-                        <label className="admin-label">Phone</label>
-                        <input
-                          type="tel"
-                          placeholder="Phone"
-                          value={newRestaurant.phone}
-                          onChange={(e) => setNewRestaurant({ ...newRestaurant, phone: e.target.value })}
-                          className="admin-input"
-                          required
-                        />
-                      </div>
-                      <div className="admin-form-group">
-                        <label className="admin-label">Address</label>
-                        <input
-                          type="text"
-                          placeholder="Address"
-                          value={newRestaurant.address}
-                          onChange={(e) => setNewRestaurant({ ...newRestaurant, address: e.target.value })}
-                          className="admin-input"
-                          required
-                        />
-                      </div>
-                      <div className="admin-form-group">
-                        <label className="admin-label">Description</label>
-                        <textarea
-                          placeholder="Description"
-                          value={newRestaurant.description}
-                          onChange={(e) => setNewRestaurant({ ...newRestaurant, description: e.target.value })}
-                          className="admin-input"
-                          rows="3"
-                        />
-                      </div>
-                      <div className="admin-form-group">
-                        <div className="flex gap-2">
+                <div className="order-modal-overlay" onClick={() => setShowAddRestaurant(false)}>
+                  <div className="order-modal" style={{ maxHeight: '100vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
+                    <div className="admin-card-header" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', borderRadius: '20px 20px 0 0', borderBottom: 'none' }}>
+                      <h3 className="admin-card-title" style={{ color: 'white', margin: 0 }}>Add New Restaurant</h3>
+                    </div>
+                    <div className="admin-card-body">
+                      <form onSubmit={handleAddRestaurant} className="admin-form">
+                        <div className="admin-form-group">
+                          <label className="admin-label">Restaurant Name</label>
+                          <input
+                            type="text"
+                            placeholder="Restaurant Name"
+                            value={newRestaurant.name}
+                            onChange={(e) => setNewRestaurant({ ...newRestaurant, name: e.target.value })}
+                            className="admin-input"
+                            required
+                          />
+                        </div>
+                        <div className="admin-form-group">
+                          <label className="admin-label">Email</label>
+                          <input
+                            type="email"
+                            placeholder="Email"
+                            value={newRestaurant.email}
+                            onChange={(e) => setNewRestaurant({ ...newRestaurant, email: e.target.value })}
+                            className="admin-input"
+                            required
+                          />
+                        </div>
+                        <div className="admin-form-group">
+                          <label className="admin-label">Phone</label>
+                          <input
+                            type="tel"
+                            placeholder="Phone"
+                            value={newRestaurant.phone}
+                            onChange={(e) => setNewRestaurant({ ...newRestaurant, phone: e.target.value })}
+                            className="admin-input"
+                            required
+                          />
+                        </div>
+                        <div className="admin-form-group">
+                          <label className="admin-label">Address</label>
+                          <input
+                            type="text"
+                            placeholder="Address"
+                            value={newRestaurant.address}
+                            onChange={(e) => setNewRestaurant({ ...newRestaurant, address: e.target.value })}
+                            className="admin-input"
+                            required
+                          />
+                        </div>
+                        <div className="admin-form-group">
+                          <label className="admin-label">Description</label>
+                          <textarea
+                            placeholder="Description"
+                            value={newRestaurant.description}
+                            onChange={(e) => setNewRestaurant({ ...newRestaurant, description: e.target.value })}
+                            className="admin-input"
+                            rows="3"
+                          />
+                        </div>
+                        <div className="flex justify-end" style={{ marginTop: 'auto' }}>
+                          <button
+                            type="button"
+                            onClick={() => setShowAddRestaurant(false)}
+                            className="admin-btn admin-btn-secondary"
+                            style={{ marginRight: '1rem' }}
+                          >
+                            Cancel
+                          </button>
                           <button
                             type="submit"
                             className="admin-btn admin-btn-primary"
                           >
                             Add Restaurant
                           </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {showEditRestaurant && editingRestaurant && (
+                <div className="order-modal-overlay" onClick={() => setShowEditRestaurant(false)}>
+                  <div className="order-modal" style={{ maxHeight: '100vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
+                    <div className="admin-card-header" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', borderRadius: '20px 20px 0 0', borderBottom: 'none' }}>
+                      <h3 className="admin-card-title" style={{ color: 'white', margin: 0 }}>Edit Restaurant</h3>
+                    </div>
+                    <div className="admin-card-body">
+                      <form onSubmit={handleEditRestaurant} className="admin-form">
+                        <div className="admin-form-group">
+                          <label className="admin-label">Restaurant Name</label>
+                          <input
+                            type="text"
+                            placeholder="Restaurant Name"
+                            value={editingRestaurant.name}
+                            onChange={(e) => setEditingRestaurant({ ...editingRestaurant, name: e.target.value })}
+                            className="admin-input"
+                            required
+                          />
+                        </div>
+                        <div className="admin-form-group">
+                          <label className="admin-label">Email</label>
+                          <input
+                            type="email"
+                            placeholder="Email"
+                            value={editingRestaurant.email}
+                            onChange={(e) => setEditingRestaurant({ ...editingRestaurant, email: e.target.value })}
+                            className="admin-input"
+                            required
+                          />
+                        </div>
+                        <div className="admin-form-group">
+                          <label className="admin-label">Phone</label>
+                          <input
+                            type="tel"
+                            placeholder="Phone"
+                            value={editingRestaurant.phone}
+                            onChange={(e) => setEditingRestaurant({ ...editingRestaurant, phone: e.target.value })}
+                            className="admin-input"
+                            required
+                          />
+                        </div>
+                        <div className="admin-form-group">
+                          <label className="admin-label">Address</label>
+                          <input
+                            type="text"
+                            placeholder="Address"
+                            value={editingRestaurant.address}
+                            onChange={(e) => setEditingRestaurant({ ...editingRestaurant, address: e.target.value })}
+                            className="admin-input"
+                            required
+                          />
+                        </div>
+                        <div className="admin-form-group">
+                          <label className="admin-label">Description</label>
+                          <textarea
+                            placeholder="Description"
+                            value={editingRestaurant.description}
+                            onChange={(e) => setEditingRestaurant({ ...editingRestaurant, description: e.target.value })}
+                            className="admin-input"
+                            rows="3"
+                          />
+                        </div>
+                        <div className="flex justify-end" style={{ marginTop: 'auto' }}>
                           <button
                             type="button"
-                            onClick={() => setShowAddRestaurant(false)}
+                            onClick={() => setShowEditRestaurant(false)}
                             className="admin-btn admin-btn-secondary"
+                            style={{ marginRight: '1rem' }}
                           >
                             Cancel
                           </button>
+                          <button
+                            type="submit"
+                            className="admin-btn admin-btn-primary"
+                          >
+                            Update Restaurant
+                          </button>
                         </div>
-                      </div>
-                    </form>
+                      </form>
+                    </div>
                   </div>
                 </div>
               )}
 
               {/* Restaurant List */}
-              <div className="admin-grid">
-                {restaurants.map(restaurant => (
-                  <div key={restaurant._id} className="admin-card">
-                    <div className="admin-card-header">
-                      <h3 className="admin-card-title">{restaurant.name}</h3>
-                    </div>
-                    <div className="admin-card-body">
-                      <p className="text-gray-600 text-sm" style={{ marginBottom: '1rem' }}>{restaurant.description}</p>
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center text-sm">
-                          <span className="font-medium text-gray-700">Email:</span>
-                          <span className="ml-2 text-gray-600">{restaurant.email}</span>
-                        </div>
-                        <div className="flex items-center text-sm">
-                          <span className="font-medium text-gray-700">Phone:</span>
-                          <span className="ml-2 text-gray-600">{restaurant.phone}</span>
-                        </div>
-                        <div className="flex items-center text-sm">
-                          <span className="font-medium text-gray-700">Address:</span>
-                          <span className="ml-2 text-gray-600">{restaurant.address}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="admin-table">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full">
+                    <thead>
+                      <tr className="admin-table-row">
+                        <th className="admin-table-cell admin-table-cell-header">Name</th>
+                        <th className="admin-table-cell admin-table-cell-header">Email</th>
+                        <th className="admin-table-cell admin-table-cell-header">Phone</th>
+                        <th className="admin-table-cell admin-table-cell-header">Address</th>
+                        <th className="admin-table-cell admin-table-cell-header">Description</th>
+                        <th className="admin-table-cell admin-table-cell-header">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {restaurants.map(restaurant => (
+                        <tr key={restaurant._id} className="admin-table-row">
+                          <td className="admin-table-cell font-semibold">{restaurant.name}</td>
+                          <td className="admin-table-cell">{restaurant.email}</td>
+                          <td className="admin-table-cell">{restaurant.phone}</td>
+                          <td className="admin-table-cell">{restaurant.address}</td>
+                          <td className="admin-table-cell">{restaurant.description}</td>
+                          <td className="admin-table-cell">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  setEditingRestaurant(restaurant);
+                                  setShowEditRestaurant(true);
+                                }}
+                                className="admin-btn admin-btn-secondary text-sm"
+                                style={{ padding: '0.5rem 0.75rem' }}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteRestaurant(restaurant._id)}
+                                className="admin-btn admin-btn-danger text-sm"
+                                style={{ padding: '0.5rem 0.75rem' }}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
               {restaurants.length === 0 && (
