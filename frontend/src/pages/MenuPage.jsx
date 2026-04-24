@@ -226,7 +226,7 @@ const MenuPage = () => {
                 <h3 className="menu-item-name">{item.name}</h3>
                 <span className="menu-item-price">₹{item.price.toFixed(2)}</span>
               </div>
-              <p className="menu-item-description">{item.description}</p>
+              <p className="menu-item-description">{item.description || 'No description'}</p>
               {item.preparationTime && (
                 <p className="menu-item-prep-time">
                   ⏱️ {item.preparationTime} min prep time

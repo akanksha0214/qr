@@ -24,7 +24,17 @@ export const menuAPI = {
   getByRestaurant: (restaurantId) => api.get(`/menu/restaurant/${restaurantId}`),
   getByCategory: (restaurantId, category) => api.get(`/menu/restaurant/${restaurantId}/category/${category}`),
   getById: (id) => api.get(`/menu/${id}`),
-  create: (data) => api.post('/menu', data),
+  create: (data) => {
+    // If data is FormData, don't set Content-Type header
+    if (data instanceof FormData) {
+      return axios.post(`${API_BASE_URL}/menu`, data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+    }
+    return api.post('/menu', data);
+  },
   update: (id, data) => api.put(`/menu/${id}`, data),
   delete: (id) => api.delete(`/menu/${id}`),
 };

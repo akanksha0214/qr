@@ -37,6 +37,8 @@ const AdminDashboard = () => {
     preparationTime: 15,
     availability: true
   });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [generatedQRs, setGeneratedQRs] = useState([]);
   const [showPrintReceipt, setShowPrintReceipt] = useState(null);
   const [socket, setSocket] = useState(null);
@@ -224,14 +226,20 @@ const AdminDashboard = () => {
       // Use custom category if selected, otherwise use predefined category
       const categoryValue = newMenuItem.category === 'custom' ? newMenuItem.customCategory : newMenuItem.category;
 
-      const menuItemData = {
-        ...newMenuItem,
-        category: categoryValue,
-        restaurantId: selectedRestaurant._id,
-        price: parseFloat(newMenuItem.price)
-      };
+      const formData = new FormData();
+      formData.append('name', newMenuItem.name);
+      formData.append('description', newMenuItem.description);
+      formData.append('price', newMenuItem.price);
+      formData.append('category', categoryValue);
+      formData.append('preparationTime', newMenuItem.preparationTime);
+      formData.append('restaurantId', selectedRestaurant._id);
+      formData.append('isAvailable', newMenuItem.availability);
 
-      const response = await menuAPI.create(menuItemData);
+      if (imageFile) {
+        formData.append('image', imageFile);
+      }
+
+      const response = await menuAPI.create(formData);
       setMenuItems([...menuItems, response.data]);
       setShowAddMenuItemModal(false);
       setNewMenuItem({
@@ -243,6 +251,8 @@ const AdminDashboard = () => {
         preparationTime: 15,
         availability: true
       });
+      setImageFile(null);
+      setImagePreview(null);
     } catch (error) {
       console.error('Error adding menu item:', error);
     }
@@ -300,6 +310,17 @@ const AdminDashboard = () => {
       );
     } catch (error) {
       console.error('Error updating menu item availability:', error);
+    }
+  };
+
+  const handleDeleteMenuItem = async (itemId) => {
+    if (window.confirm('Are you sure you want to delete this menu item? This action cannot be undone.')) {
+      try {
+        await menuAPI.delete(itemId);
+        setMenuItems(prevItems => prevItems.filter(item => item._id !== itemId));
+      } catch (error) {
+        console.error('Error deleting menu item:', error);
+      }
     }
   };
 
@@ -660,7 +681,43 @@ const AdminDashboard = () => {
                         {menuItems
                           .filter(item => selectedCategoryTab === 'all' || item.category === selectedCategoryTab)
                           .map(item => (
-                            <div key={item._id} className="admin-card" style={{ overflow: 'hidden' }}>
+                            <div key={item._id} className="admin-card" style={{ overflow: 'hidden', position: 'relative', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)' }}>
+                              <button
+                                onClick={() => handleDeleteMenuItem(item._id)}
+                                style={{
+                                  position: 'absolute',
+                                  top: '10px',
+                                  right: '10px',
+                                  backgroundColor: 'rgba(239, 68, 68, 0.9)',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '50%',
+                                  width: '32px',
+                                  height: '32px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  zIndex: 10,
+                                  transition: 'all 0.2s ease'
+                                }}
+                                onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(220, 38, 38, 1)'}
+                                onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.9)'}
+                              >
+                                <svg
+                                  width="16"
+                                  height="16"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <polyline points="3 6 5 6 21 6"></polyline>
+                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                              </button>
                               {item.image ? (
                                 <img
                                   src={item.image}
@@ -677,7 +734,7 @@ const AdminDashboard = () => {
                                   <h3 className="admin-card-title" style={{ fontSize: '1.125rem', margin: 0 }}>{item.name}</h3>
                                   <span className="font-bold text-green-600" style={{ fontSize: '1.125rem' }}>₹{item.price.toFixed(2)}</span>
                                 </div>
-                                <p className="text-gray-600 text-sm mb-2" style={{ fontSize: '0.875rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.description}</p>
+                                <p className="text-gray-600 text-sm mb-2" style={{ fontSize: '0.875rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.description || 'No description'}</p>
                                 {item.preparationTime && (
                                   <p className="text-gray-500 text-sm mb-3" style={{ fontSize: '0.875rem' }}>
                                     ⏱️ {item.preparationTime} min prep time
@@ -765,6 +822,30 @@ const AdminDashboard = () => {
                                 />
                               </div>
                             )}
+                            <div className="admin-form-group">
+                              <label className="admin-label">Item Image</label>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                  const file = e.target.files[0];
+                                  if (file) {
+                                    setImageFile(file);
+                                    setImagePreview(URL.createObjectURL(file));
+                                  }
+                                }}
+                                className="admin-input"
+                              />
+                              {imagePreview && (
+                                <div style={{ marginTop: '0.5rem' }}>
+                                  <img
+                                    src={imagePreview}
+                                    alt="Preview"
+                                    style={{ width: '100%', maxWidth: '200px', height: 'auto', borderRadius: '8px' }}
+                                  />
+                                </div>
+                              )}
+                            </div>
                             <div className="admin-form-group">
                               <label className="admin-label">Preparation Time (minutes)</label>
                               <input

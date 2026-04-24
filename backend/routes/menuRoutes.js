@@ -1,6 +1,48 @@
 const express = require('express');
 const router = express.Router();
 const MenuItem = require('../models/MenuItem');
+const multer = require('multer');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('cloudinary').v2;
+const path = require('path');
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// Configure Cloudinary storage for multer
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'menu-items',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+    transformation: [
+      { width: 800, height: 600, crop: 'limit' },
+      { quality: 'auto' }
+    ]
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  fileFilter: function (req, file, cb) {
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+
+    if (extname && mimetype) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'));
+    }
+  }
+});
 
 // Get all menu items for a restaurant
 router.get('/restaurant/:restaurantId', async (req, res) => {
@@ -43,9 +85,16 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create new menu item
-router.post('/', async (req, res) => {
+router.post('/', upload.single('image'), async (req, res) => {
   try {
-    const menuItem = new MenuItem(req.body);
+    const menuItemData = { ...req.body };
+    
+    if (req.file) {
+      // Cloudinary returns the full URL in req.file.path
+      menuItemData.image = req.file.path;
+    }
+    
+    const menuItem = new MenuItem(menuItemData);
     const savedMenuItem = await menuItem.save();
     res.status(201).json(savedMenuItem);
   } catch (error) {
