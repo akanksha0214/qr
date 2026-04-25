@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const MenuItem = require('../models/MenuItem');
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
@@ -44,13 +45,20 @@ const upload = multer({
   }
 });
 
-// Get all menu items for a restaurant
+// Get all menu items for a restaurant (including unavailable ones for admin)
 router.get('/restaurant/:restaurantId', async (req, res) => {
   try {
-    const menuItems = await MenuItem.find({ 
-      restaurantId: req.params.restaurantId,
-      isAvailable: true 
-    }).sort({ category: 1, name: 1 });
+    const menuItems = await MenuItem.aggregate([
+      { $match: { 
+        restaurantId: new mongoose.Types.ObjectId(req.params.restaurantId)
+      }},
+      { $sort: { category: 1, name: 1, createdAt: -1 }},
+      { $group: {
+        _id: { name: '$name', restaurantId: '$restaurantId' },
+        doc: { $first: '$$ROOT' }
+      }},
+      { $replaceRoot: { newRoot: '$doc' }}
+    ]);
     res.json(menuItems);
   } catch (error) {
     res.status(500).json({ message: error.message });

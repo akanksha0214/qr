@@ -320,43 +320,44 @@ const MenuPage = () => {
       {showOrderForm && (
         <div className="order-modal-overlay" onClick={() => setShowOrderForm(false)}>
           <div className="order-modal" style={{ padding: 0, overflow: 'hidden' }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding: '1.5rem', borderBottom: 'none' }}>
-              <h3 style={{ margin: 0, color: 'white', fontSize: '1.5rem', fontWeight: 700 }}>Place Your Order</h3>
+            <div style={{ background: '#0f172a', padding: '1rem 1.5rem', borderBottom: 'none' }}>
+              <h3 style={{ margin: 0, color: 'white', fontSize: '1rem', fontWeight: 600 }}>Place Your Order</h3>
             </div>
 
             <form onSubmit={submitOrder} style={{ padding: '1.5rem' }}>
-              <div className="form-group">
-                <label className="form-label" style={{ fontWeight: 600, marginBottom: '0.5rem', display: 'block' }}>
-                  Your Name *
-                </label>
-                <input
-                  type="text"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  required
-                  placeholder="Enter your name"
-                  className="form-input"
-                  style={{ padding: '0.75rem 1rem', borderRadius: '10px', border: '2px solid #e5e7eb', fontSize: '1rem', width: '100%' }}
-                />
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label" style={{ fontWeight: 600, marginBottom: '0.5rem', display: 'block' }}>
+                    Your Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    required
+                    placeholder="Enter your name"
+                    className="form-input"
+                    style={{ padding: '0.75rem 1rem', borderRadius: '10px', border: '2px solid #e5e7eb', fontSize: '1rem', width: '100%' }}
+                  />
+                </div>
+
+                {tableNumber && (
+                <div className="form-group" style={{ flex: 0.4 }}>
+                  <label className="form-label" style={{ fontWeight: 600, marginBottom: '0.5rem', display: 'block' }}>
+                    Table Number
+                  </label>
+                  <input
+                    type="text"
+                    value={tableNumber}
+                    readOnly
+                    className="form-input"
+                    style={{ padding: '0.75rem 1rem', borderRadius: '10px', border: '2px solid #e5e7eb', fontSize: '1rem', width: '100%', backgroundColor: '#f9fafb' }}
+                  />
+                </div>
+              )}
               </div>
 
-              {tableNumber && (
-              <div className="form-group">
-                <label className="form-label" style={{ fontWeight: 600, marginBottom: '0.5rem', display: 'block' }}>
-                  Table Number
-                </label>
-                <input
-                  type="text"
-                  value={tableNumber}
-                  readOnly
-                  className="form-input"
-                  style={{ padding: '0.75rem 1rem', borderRadius: '10px', border: '2px solid #e5e7eb', fontSize: '1rem', width: '100%', backgroundColor: '#f9fafb' }}
-                />
-                <p className="form-hint" style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '0.25rem' }}>Table number from QR code</p>
-              </div>
-            )}
-
-              <div className="form-group">
+              <div className="form-group" style={{ marginTop: '-1rem' }}>
                 <h4 className="order-summary-title" style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1rem', color: '#1a1a1a' }}>Order Summary:</h4>
                 <div style={{ background: '#f9fafb', borderRadius: '12px', padding: '1rem' }}>
                   {cart.map(item => (
@@ -397,7 +398,7 @@ const MenuPage = () => {
                     setOrderError('');
                   }}
                   className="form-button form-button-cancel"
-                  style={{ flex: 1, padding: '0.875rem 1.5rem', borderRadius: '10px', border: '2px solid #e5e7eb', backgroundColor: 'white', color: '#374151', fontWeight: 600, fontSize: '1rem', cursor: 'pointer', transition: 'all 0.2s ease' }}
+                  style={{ flex: 1, padding: '0.625rem', borderRadius: '6px', border: '1px solid #e2e8f0', backgroundColor: 'white', color: '#475569', fontWeight: 500, fontSize: '0.875rem', cursor: 'pointer', transition: 'all 0.2s ease' }}
                 >
                   Cancel
                 </button>
@@ -405,7 +406,7 @@ const MenuPage = () => {
                   type="submit"
                   disabled={isPlacingOrder}
                   className="form-button form-button-submit"
-                  style={{ flex: 1, padding: '0.875rem 1.5rem', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', fontWeight: 600, fontSize: '1rem', cursor: 'pointer', transition: 'all 0.2s ease' }}
+                  style={{ flex: 1, padding: '0.625rem', borderRadius: '6px', border: 'none', background: '#0f172a', color: 'white', fontWeight: 500, fontSize: '0.875rem', cursor: 'pointer', transition: 'all 0.2s ease' }}
                 >
                   {isPlacingOrder ? 'Placing Order...' : 'Confirm Order'}
                 </button>

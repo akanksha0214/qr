@@ -54,4 +54,13 @@ export const qrAPI = {
   getUrl: (qrCodeId) => api.get(`/qr/${qrCodeId}/url`),
 };
 
+// User API calls
+export const userAPI = {
+  getAll: () => api.get('/users'),
+  getById: (id) => api.get(`/users/${id}`),
+  create: (data) => api.post('/users', data),
+  update: (id, data) => api.put(`/users/${id}`, data),
+  delete: (id) => api.delete(`/users/${id}`),
+};
+
 export default api;

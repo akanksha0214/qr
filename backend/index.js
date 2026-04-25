@@ -54,6 +54,7 @@ app.use('/api/restaurants', require('./routes/restaurantRoutes'));
 app.use('/api/menu', require('./routes/menuRoutes'));
 app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/qr', require('./routes/qrRoutes'));
+app.use('/api/users', require('./routes/userRoutes'));
 
 app.get('/', (req, res) => {
   res.json({ message: 'QR Restaurant API Server' });

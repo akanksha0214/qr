@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { restaurantAPI, orderAPI, menuAPI, qrAPI } from '../services/api';
+import { restaurantAPI, orderAPI, menuAPI, qrAPI, userAPI } from '../services/api';
 import QRGenerator from '../components/QRGenerator';
 import PrintableReceipt from '../components/PrintableReceipt';
 import { io } from 'socket.io-client';
+import toast, { Toaster } from 'react-hot-toast';
 import '../styles/AdminDashboard.css';
 import '../styles/NotificationPopup.css';
 
@@ -21,6 +22,8 @@ const AdminDashboard = () => {
   const [orderFilter, setOrderFilter] = useState('all');
   const [users, setUsers] = useState([]);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [isAddingUser, setIsAddingUser] = useState(false);
+  const [isAddingMenuItem, setIsAddingMenuItem] = useState(false);
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
@@ -71,13 +74,15 @@ const AdminDashboard = () => {
 
   const fetchData = async () => {
     try {
-      const [restaurantsRes, ordersRes] = await Promise.all([
+      const [restaurantsRes, ordersRes, usersRes] = await Promise.all([
         restaurantAPI.getAll(),
-        selectedRestaurant ? orderAPI.getByRestaurant(selectedRestaurant._id) : Promise.resolve({ data: [] })
+        selectedRestaurant ? orderAPI.getByRestaurant(selectedRestaurant._id) : Promise.resolve({ data: [] }),
+        userAPI.getAll()
       ]);
 
       setRestaurants(restaurantsRes.data);
       setOrders(ordersRes.data);
+      setUsers(usersRes.data);
 
       if (selectedRestaurant) {
         const menuRes = await menuAPI.getByRestaurant(selectedRestaurant._id);
@@ -125,14 +130,14 @@ const AdminDashboard = () => {
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
-        
+
         oscillator.connect(gainNode);
         gainNode.connect(audioContext.destination);
-        
+
         oscillator.frequency.value = 800;
         oscillator.type = 'sine';
         gainNode.gain.value = 0.3;
-        
+
         oscillator.start();
         setTimeout(() => oscillator.stop(), 200);
       } catch (e) {
@@ -222,6 +227,7 @@ const AdminDashboard = () => {
 
   const handleAddMenuItem = async (e) => {
     e.preventDefault();
+    setIsAddingMenuItem(true);
     try {
       // Use custom category if selected, otherwise use predefined category
       const categoryValue = newMenuItem.category === 'custom' ? newMenuItem.customCategory : newMenuItem.category;
@@ -253,21 +259,26 @@ const AdminDashboard = () => {
       });
       setImageFile(null);
       setImagePreview(null);
+      toast.success('Menu item added successfully');
     } catch (error) {
       console.error('Error adding menu item:', error);
+      toast.error('Failed to add menu item');
+    } finally {
+      setIsAddingMenuItem(false);
     }
   };
 
   const handleAddUser = async (e) => {
     e.preventDefault();
+    setIsAddingUser(true);
     try {
       const userData = {
         ...newUser,
-        restaurantId: newUser.restaurantId || null
+        restaurantId: selectedRestaurant ? selectedRestaurant._id : null
       };
 
-      // For now, just add to local state (would normally call an API)
-      setUsers([...users, { ...userData, _id: Date.now().toString() }]);
+      const response = await userAPI.create(userData);
+      setUsers([...users, response.data]);
       setShowAddUserModal(false);
       setNewUser({
         name: '',
@@ -276,14 +287,27 @@ const AdminDashboard = () => {
         role: 'staff',
         restaurantId: ''
       });
+      toast.success('User added successfully');
     } catch (error) {
       console.error('Error adding user:', error);
+      if (error.response?.data?.message?.includes('email') || error.response?.data?.message?.includes('duplicate')) {
+        toast.error('Email already exists');
+      } else {
+        toast.error('Failed to add user');
+      }
+    } finally {
+      setIsAddingUser(false);
     }
   };
 
-  const handleDeleteUser = (userId) => {
+  const handleDeleteUser = async (userId) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
-      setUsers(users.filter(user => user._id !== userId));
+      try {
+        await userAPI.delete(userId);
+        setUsers(users.filter(user => user._id !== userId));
+      } catch (error) {
+        console.error('Error deleting user:', error);
+      }
     }
   };
 
@@ -350,6 +374,7 @@ const AdminDashboard = () => {
 
   return (
     <div className="admin-dashboard">
+      <Toaster position="top-right" />
       {/* Header */}
       <header className="admin-header">
         <div className="admin-header-content">
@@ -411,7 +436,7 @@ const AdminDashboard = () => {
                   {notifications[0].order.items.map((item, index) => (
                     <div key={index} className="notification-popup-item">
                       <span className="notification-popup-item-name">{item.name} x{item.quantity}</span>
-                      <span className="notification-popup-item-price">${(item.price * item.quantity).toFixed(2)}</span>
+                      <span className="notification-popup-item-price">₹{(item.price * item.quantity).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
@@ -420,7 +445,7 @@ const AdminDashboard = () => {
                 <div className="notification-popup-total">
                   <span className="notification-popup-total-label">Total:</span>
                   <span className="notification-popup-total-value">
-                    ${notifications[0].order.total.toFixed(2)}
+                    ₹{notifications[0].order.total.toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -539,12 +564,6 @@ const AdminDashboard = () => {
                         <option value="ready">Ready</option>
                         <option value="completed">Completed</option>
                       </select>
-                      <button
-                        onClick={() => fetchData()}
-                        className="admin-btn admin-btn-primary"
-                      >
-                        Refresh Orders
-                      </button>
                     </div>
                   </div>
 
@@ -590,7 +609,7 @@ const AdminDashboard = () => {
                                   )}
                                 </div>
                               </td>
-                              <td className="admin-table-cell font-semibold">${order.total.toFixed(2)}</td>
+                              <td className="admin-table-cell font-semibold">₹{order.total.toFixed(2)}</td>
                               <td className="admin-table-cell">
                                 <span className={`status-badge status-${order.status}`}>
                                   {order.status}
@@ -762,7 +781,7 @@ const AdminDashboard = () => {
                   {showAddMenuItemModal && (
                     <div className="order-modal-overlay" onClick={() => setShowAddMenuItemModal(false)}>
                       <div className="order-modal" style={{ maxHeight: '100vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
-                        <div className="admin-card-header" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', borderRadius: '20px 20px 0 0', borderBottom: 'none' }}>
+                        <div className="admin-card-header" style={{ background: '#0f172a', borderRadius: '8px 8px 0 0', borderBottom: 'none' }}>
                           <h3 className="admin-card-title" style={{ color: 'white', margin: 0 }}>Add New Menu Item</h3>
                         </div>
                         <div className="admin-card-body">
@@ -878,8 +897,9 @@ const AdminDashboard = () => {
                               <button
                                 type="submit"
                                 className="admin-btn admin-btn-primary"
+                                disabled={isAddingMenuItem}
                               >
-                                Add Menu Item
+                                {isAddingMenuItem ? 'Adding...' : 'Add Menu Item'}
                               </button>
                             </div>
                           </form>
@@ -955,16 +975,18 @@ const AdminDashboard = () => {
               <h2 className="admin-card-title">Cafe Management</h2>
             </div>
             <div className="admin-card-body">
-              <button
-                onClick={() => setShowAddRestaurant(true)}
-                className="admin-btn admin-btn-primary"
-              >
-                Add New Restaurant
-              </button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => setShowAddRestaurant(true)}
+                  className="admin-btn admin-btn-primary"
+                >
+                  Add New Restaurant
+                </button>
+              </div>
               {showAddRestaurant && (
                 <div className="order-modal-overlay" onClick={() => setShowAddRestaurant(false)}>
                   <div className="order-modal" style={{ maxHeight: '100vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
-                    <div className="admin-card-header" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', borderRadius: '20px 20px 0 0', borderBottom: 'none' }}>
+                    <div className="admin-card-header" style={{ background: '#0f172a', borderRadius: '8px 8px 0 0', borderBottom: 'none' }}>
                       <h3 className="admin-card-title" style={{ color: 'white', margin: 0 }}>Add New Restaurant</h3>
                     </div>
                     <div className="admin-card-body">
@@ -1048,7 +1070,7 @@ const AdminDashboard = () => {
               {showEditRestaurant && editingRestaurant && (
                 <div className="order-modal-overlay" onClick={() => setShowEditRestaurant(false)}>
                   <div className="order-modal" style={{ maxHeight: '100vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
-                    <div className="admin-card-header" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', borderRadius: '20px 20px 0 0', borderBottom: 'none' }}>
+                    <div className="admin-card-header" style={{ background: '#0f172a', borderRadius: '8px 8px 0 0', borderBottom: 'none' }}>
                       <h3 className="admin-card-title" style={{ color: 'white', margin: 0 }}>Edit Restaurant</h3>
                     </div>
                     <div className="admin-card-body">
@@ -1213,32 +1235,36 @@ const AdminDashboard = () => {
                         <th className="admin-table-cell-header">Name</th>
                         <th className="admin-table-cell-header">Email</th>
                         <th className="admin-table-cell-header">Role</th>
-                        <th className="admin-table-cell-header">Restaurant</th>
                         <th className="admin-table-cell-header">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {users.map(user => (
-                        <tr key={user._id} className="admin-table-row">
-                          <td className="admin-table-cell">{user.name}</td>
-                          <td className="admin-table-cell">{user.email}</td>
-                          <td className="admin-table-cell">
-                            <span className={`status-badge ${user.role === 'admin' ? 'status-ready' : 'status-pending'}`}>
-                              {user.role}
-                            </span>
-                          </td>
-                          <td className="admin-table-cell">{user.restaurantId ? restaurants.find(r => r._id === user.restaurantId)?.name || 'N/A' : 'All Restaurants'}</td>
-                          <td className="admin-table-cell">
-                            <button
-                              onClick={() => handleDeleteUser(user._id)}
-                              className="admin-btn admin-btn-danger"
-                              style={{ fontSize: '0.875rem', padding: '0.5rem 0.75rem' }}
-                            >
-                              Delete
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {users
+                        .filter(user => {
+                          if (!selectedRestaurant) return true;
+                          const userRestaurantId = typeof user.restaurantId === 'object' ? user.restaurantId._id : user.restaurantId;
+                          return userRestaurantId === selectedRestaurant._id;
+                        })
+                        .map(user => (
+                          <tr key={user._id} className="admin-table-row">
+                            <td className="admin-table-cell">{user.name}</td>
+                            <td className="admin-table-cell">{user.email}</td>
+                            <td className="admin-table-cell">
+                              <span className={`status-badge ${user.role === 'admin' ? 'status-ready' : 'status-pending'}`}>
+                                {user.role}
+                              </span>
+                            </td>
+                            <td className="admin-table-cell">
+                              <button
+                                onClick={() => handleDeleteUser(user._id)}
+                                className="admin-btn admin-btn-danger"
+                                style={{ fontSize: '0.875rem', padding: '0.5rem 0.75rem' }}
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
                     </tbody>
                   </table>
                 </div>
@@ -1251,7 +1277,7 @@ const AdminDashboard = () => {
               {showAddUserModal && (
                 <div className="order-modal-overlay" onClick={() => setShowAddUserModal(false)}>
                   <div className="order-modal" style={{ maxHeight: '100vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
-                    <div className="admin-card-header" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', borderRadius: '20px 20px 0 0', borderBottom: 'none' }}>
+                    <div className="admin-card-header" style={{ background: '#0f172a', borderRadius: '8px 8px 0 0', borderBottom: 'none' }}>
                       <h3 className="admin-card-title" style={{ color: 'white', margin: 0 }}>Add New User</h3>
                     </div>
                     <div className="admin-card-body">
@@ -1301,19 +1327,6 @@ const AdminDashboard = () => {
                             <option value="admin">Admin</option>
                           </select>
                         </div>
-                        <div className="admin-form-group">
-                          <label className="admin-label">Restaurant</label>
-                          <select
-                            value={newUser.restaurantId}
-                            onChange={(e) => setNewUser({ ...newUser, restaurantId: e.target.value })}
-                            className="admin-select"
-                          >
-                            <option value="">All Restaurants</option>
-                            {restaurants.map(restaurant => (
-                              <option key={restaurant._id} value={restaurant._id}>{restaurant.name}</option>
-                            ))}
-                          </select>
-                        </div>
                         <div className="flex justify-end" style={{ marginTop: 'auto' }}>
                           <button
                             type="button"
@@ -1326,8 +1339,9 @@ const AdminDashboard = () => {
                           <button
                             type="submit"
                             className="admin-btn admin-btn-primary"
+                            disabled={isAddingUser}
                           >
-                            Add User
+                            {isAddingUser ? 'Adding...' : 'Add User'}
                           </button>
                         </div>
                       </form>
