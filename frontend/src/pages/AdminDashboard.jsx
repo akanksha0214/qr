@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { restaurantAPI, orderAPI, menuAPI, qrAPI, userAPI } from '../services/api';
+import { restaurantAPI, orderAPI, menuAPI, qrAPI, userAPI, cafeDetailsAPI } from '../services/api';
 import QRGenerator from '../components/QRGenerator';
 import PrintableReceipt from '../components/PrintableReceipt';
 import { io } from 'socket.io-client';
@@ -55,6 +55,23 @@ const AdminDashboard = () => {
     phone: '',
     email: ''
   });
+
+  // Cafe Details form state
+  const [cafeDetails, setCafeDetails] = useState({
+    name: '',
+    address: '',
+    phone: '',
+    logo: '',
+    gstNumber: '',
+    cgst: '',
+    igst: ''
+  });
+  const [currentCafeDetails, setCurrentCafeDetails] = useState(null);
+  const [showCafeDetailsForm, setShowCafeDetailsForm] = useState(false);
+  const [isSavingCafeDetails, setIsSavingCafeDetails] = useState(false);
+  const [isLoadingCafeDetails, setIsLoadingCafeDetails] = useState(false);
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(null);
 
   // Function to group menu items by category
   const groupMenuItemsByCategory = (items) => {
@@ -190,6 +207,29 @@ const AdminDashboard = () => {
     }
   }, [showPrintReceipt]);
 
+  // Load cafe details when restaurant is selected
+  useEffect(() => {
+    if (selectedRestaurant) {
+      loadCafeDetails();
+    } else {
+      setCurrentCafeDetails(null);
+    }
+  }, [selectedRestaurant]);
+
+  const loadCafeDetails = async () => {
+    if (!selectedRestaurant) return;
+    setIsLoadingCafeDetails(true);
+    try {
+      const response = await cafeDetailsAPI.getByRestaurant(selectedRestaurant._id);
+      setCurrentCafeDetails(response.data);
+    } catch (error) {
+      console.error('Error loading cafe details:', error);
+      setCurrentCafeDetails(null);
+    } finally {
+      setIsLoadingCafeDetails(false);
+    }
+  };
+
   const handleAddRestaurant = async (e) => {
     e.preventDefault();
     try {
@@ -308,6 +348,89 @@ const AdminDashboard = () => {
       } catch (error) {
         console.error('Error deleting user:', error);
       }
+    }
+  };
+
+  const handleSaveCafeDetails = async (e) => {
+    e.preventDefault();
+    setIsSavingCafeDetails(true);
+    try {
+      const formData = new FormData();
+      formData.append('restaurantId', selectedRestaurant._id);
+      formData.append('name', cafeDetails.name);
+      formData.append('address', cafeDetails.address);
+      formData.append('phone', cafeDetails.phone);
+      formData.append('gstNumber', cafeDetails.gstNumber);
+      formData.append('cgst', cafeDetails.cgst);
+      formData.append('igst', cafeDetails.igst);
+
+      if (logoFile) {
+        formData.append('logo', logoFile);
+      } else if (cafeDetails.logo && typeof cafeDetails.logo === 'string' && cafeDetails.logo !== '') {
+        formData.append('existingLogo', cafeDetails.logo);
+      }
+
+      if (currentCafeDetails) {
+        const response = await cafeDetailsAPI.update(currentCafeDetails._id, formData);
+        setCurrentCafeDetails(response.data);
+        toast.success('Cafe details updated successfully');
+      } else {
+        const response = await cafeDetailsAPI.create(formData);
+        setCurrentCafeDetails(response.data);
+        toast.success('Cafe details added successfully');
+      }
+      setShowCafeDetailsForm(false);
+      setLogoFile(null);
+      setLogoPreview(null);
+    } catch (error) {
+      console.error('Error saving cafe details:', error);
+      toast.error('Failed to save cafe details');
+    } finally {
+      setIsSavingCafeDetails(false);
+    }
+  };
+
+  const handleLoadCafeDetails = () => {
+    if (selectedRestaurant) {
+      if (currentCafeDetails) {
+        setCafeDetails({
+          name: currentCafeDetails.name || '',
+          address: currentCafeDetails.address || '',
+          phone: currentCafeDetails.phone || '',
+          logo: currentCafeDetails.logo || '',
+          gstNumber: currentCafeDetails.gstNumber || '',
+          cgst: currentCafeDetails.cgst?.toString() || '',
+          igst: currentCafeDetails.igst?.toString() || ''
+        });
+        setLogoPreview(currentCafeDetails.logo || null);
+      } else {
+        setCafeDetails({
+          name: selectedRestaurant.name || '',
+          address: selectedRestaurant.address || '',
+          phone: selectedRestaurant.phone || '',
+          logo: '',
+          gstNumber: '',
+          cgst: '',
+          igst: ''
+        });
+        setLogoPreview(null);
+      }
+      setShowCafeDetailsForm(true);
+    } else {
+      toast.error('Please select a restaurant first');
+    }
+  };
+
+  const handleLogoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setLogoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result);
+        setCafeDetails({ ...cafeDetails, logo: reader.result });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -523,6 +646,12 @@ const AdminDashboard = () => {
                 <span className="admin-tab-badge">
                   {restaurants.length}
                 </span>
+              </button>
+              <button
+                onClick={() => setActiveTab('cafe-details')}
+                className={`admin-tab ${activeTab === 'cafe-details' ? 'active' : ''}`}
+              >
+                Cafe Details
               </button>
               <button
                 onClick={() => setActiveTab('users')}
@@ -1353,6 +1482,211 @@ const AdminDashboard = () => {
           </div>
         )}
 
+        {/* Cafe Details Tab */}
+        {activeTab === 'cafe-details' && (
+          <div className="admin-card">
+            <div className="admin-card-header">
+              <h2 className="admin-card-title">Cafe Details</h2>
+            </div>
+            <div className="admin-card-body">
+              {!selectedRestaurant ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">Please select a restaurant to manage cafe details</p>
+                </div>
+              ) : (
+                <>
+                  <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                      onClick={handleLoadCafeDetails}
+                      className="admin-btn admin-btn-primary"
+                    >
+                      Edit Cafe Details
+                    </button>
+                  </div>
+
+                  {/* Cafe Details Display */}
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    {isLoadingCafeDetails ? (
+                      <p className="text-gray-500">Loading cafe details...</p>
+                    ) : currentCafeDetails ? (
+                      <div>
+                        {/* Header with Logo */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '2rem', padding: '1.5rem', background: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
+                          {currentCafeDetails.logo ? (
+                            <img
+                              src={currentCafeDetails.logo}
+                              alt="Logo"
+                              style={{ width: '64px', height: '64px', objectFit: 'contain', borderRadius: '8px' }}
+                            />
+                          ) : (
+                            <div style={{ width: '64px', height: '64px', borderRadius: '8px', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>
+                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                <rect x="3" y="3" width="18" height="18" rx="2" />
+                              </svg>
+                            </div>
+                          )}
+                          <div>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827', marginBottom: '0.25rem' }}>{currentCafeDetails.name || 'N/A'}</h3>
+                            <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>{currentCafeDetails.address || 'N/A'}</p>
+                          </div>
+                        </div>
+
+                        {/* Details Grid */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                          <div style={{ padding: '1rem', background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                            <label style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', display: 'block' }}>Phone</label>
+                            <p style={{ fontSize: '0.9375rem', color: '#111827', fontWeight: '500' }}>{currentCafeDetails.phone || 'N/A'}</p>
+                          </div>
+                          <div style={{ padding: '1rem', background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                            <label style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', display: 'block' }}>GST Number</label>
+                            <p style={{ fontSize: '0.9375rem', color: '#111827', fontWeight: '500' }}>{currentCafeDetails.gstNumber || 'N/A'}</p>
+                          </div>
+                          <div style={{ padding: '1rem', background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                            <label style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', display: 'block' }}>CGST</label>
+                            <p style={{ fontSize: '0.9375rem', color: '#111827', fontWeight: '500' }}>{currentCafeDetails.cgst ? `${currentCafeDetails.cgst}%` : 'N/A'}</p>
+                          </div>
+                          <div style={{ padding: '1rem', background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                            <label style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', display: 'block' }}>IGST</label>
+                            <p style={{ fontSize: '0.9375rem', color: '#111827', fontWeight: '500' }}>{currentCafeDetails.igst ? `${currentCafeDetails.igst}%` : 'N/A'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-gray-500">No cafe details found. Click "Edit Cafe Details" to add them.</p>
+                    )}
+                  </div>
+
+                  {showCafeDetailsForm && (
+                    <div className="order-modal-overlay" onClick={() => setShowCafeDetailsForm(false)}>
+                      <div className="order-modal" style={{ maxHeight: '100vh', overflowY: 'auto', borderRadius: '12px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }} onClick={(e) => e.stopPropagation()}>
+                        <div className="admin-card-header" style={{ background: 'white', borderRadius: '12px 12px 0 0', borderBottom: '1px solid #e5e7eb', padding: '1.5rem' }}>
+                          <h3 className="admin-card-title" style={{ color: '#111827', margin: 0, fontSize: '1.125rem', fontWeight: '600' }}>
+                            Edit Cafe Details
+                          </h3>
+                        </div>
+                        <div className="admin-card-body" style={{ padding: '1.5rem' }}>
+                          <form onSubmit={handleSaveCafeDetails} className="admin-form">
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+                              {logoPreview && (
+                                <div style={{ marginTop: '0.5rem' }}>
+                                  <img src={logoPreview} alt="Logo Preview" style={{ maxWidth: '100px', maxHeight: '100px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #e5e7eb' }} />
+                                </div>
+                              )}
+                              <div style={{ display: 'flex', gap: '1rem', gridColumn: '1 / -1' }}>
+                                <div className="admin-form-group" style={{ flex: 1 }}>
+                                  <label className="admin-label" style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151' }}>Cafe Name</label>
+                                  <input
+                                    type="text"
+                                    placeholder="Cafe Name"
+                                    value={cafeDetails.name}
+                                    onChange={(e) => setCafeDetails({ ...cafeDetails, name: e.target.value })}
+                                    className="admin-input"
+                                    required
+                                    style={{ borderRadius: '8px', border: '1px solid #d1d5db', padding: '0.625rem 0.875rem', fontSize: '0.875rem' }}
+                                  />
+                                </div>
+                                <div className="admin-form-group" style={{ flex: 1, minWidth: '150px' }}>
+                                  <label className="admin-label" style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151' }}>Logo</label>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleLogoChange}
+                                    className="admin-input"
+                                    style={{ borderRadius: '8px', border: '1px solid #d1d5db', padding: '0.625rem 0.875rem', fontSize: '0.875rem', width: '100%', boxSizing: 'border-box' }}
+                                  />
+
+                                </div>
+                              </div>
+                              <div className="admin-form-group">
+                                <label className="admin-label" style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151' }}>Phone</label>
+                                <input
+                                  type="tel"
+                                  placeholder="Phone"
+                                  value={cafeDetails.phone}
+                                  onChange={(e) => setCafeDetails({ ...cafeDetails, phone: e.target.value })}
+                                  className="admin-input"
+                                  required
+                                  style={{ borderRadius: '8px', border: '1px solid #d1d5db', padding: '0.625rem 0.875rem', fontSize: '0.875rem' }}
+                                />
+                              </div>
+                              <div className="admin-form-group" style={{ gridColumn: '1 / -1' }}>
+                                <label className="admin-label" style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151' }}>Address</label>
+                                <input
+                                  type="text"
+                                  placeholder="Address"
+                                  value={cafeDetails.address}
+                                  onChange={(e) => setCafeDetails({ ...cafeDetails, address: e.target.value })}
+                                  className="admin-input"
+                                  required
+                                  style={{ borderRadius: '8px', border: '1px solid #d1d5db', padding: '0.625rem 0.875rem', fontSize: '0.875rem' }}
+                                />
+                              </div>
+                              <div className="admin-form-group" style={{ gridColumn: '1 / -1' }}>
+                                <label className="admin-label" style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151' }}>GST Number</label>
+                                <input
+                                  type="text"
+                                  placeholder="GST Number"
+                                  value={cafeDetails.gstNumber}
+                                  onChange={(e) => setCafeDetails({ ...cafeDetails, gstNumber: e.target.value })}
+                                  className="admin-input"
+                                  style={{ borderRadius: '8px', border: '1px solid #d1d5db', padding: '0.625rem 0.875rem', fontSize: '0.875rem' }}
+                                />
+                              </div>
+                              <div style={{ display: 'flex', gap: '1rem', gridColumn: '1 / -1' }}>
+                                <div className="admin-form-group" style={{ flex: 1 }}>
+                                  <label className="admin-label" style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151' }}>CGST (%)</label>
+                                  <input
+                                    type="number"
+                                    placeholder="CGST"
+                                    value={cafeDetails.cgst}
+                                    onChange={(e) => setCafeDetails({ ...cafeDetails, cgst: e.target.value })}
+                                    className="admin-input"
+                                    step="0.01"
+                                    style={{ borderRadius: '8px', border: '1px solid #d1d5db', padding: '0.625rem 0.875rem', fontSize: '0.875rem' }}
+                                  />
+                                </div>
+                                <div className="admin-form-group" style={{ flex: 1 }}>
+                                  <label className="admin-label" style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151' }}>IGST (%)</label>
+                                  <input
+                                    type="number"
+                                    placeholder="IGST"
+                                    value={cafeDetails.igst}
+                                    onChange={(e) => setCafeDetails({ ...cafeDetails, igst: e.target.value })}
+                                    className="admin-input"
+                                    step="0.01"
+                                    style={{ borderRadius: '8px', border: '1px solid #d1d5db', padding: '0.625rem 0.875rem', fontSize: '0.875rem' }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="d-flex justify-end" style={{ marginTop: '1.5rem', gap: '1.5rem' }}>
+                              <button
+                                type="button"
+                                onClick={() => setShowCafeDetailsForm(false)}
+                                className="admin-btn admin-btn-secondary"
+                              style={{ marginRight: '1rem' }}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="submit"
+                                className="admin-btn admin-btn-primary"
+                                disabled={isSavingCafeDetails}
+                              >
+                                {isSavingCafeDetails ? 'Saving...' : 'Save'}
+                              </button>
+                            </div>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
       </main>
 
 
@@ -1360,6 +1694,7 @@ const AdminDashboard = () => {
         <PrintableReceipt
           order={showPrintReceipt}
           restaurant={selectedRestaurant}
+          cafeDetails={currentCafeDetails}
           onClose={() => setShowPrintReceipt(null)}
         />
       )}

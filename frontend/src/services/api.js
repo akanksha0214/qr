@@ -63,4 +63,41 @@ export const userAPI = {
   delete: (id) => api.delete(`/users/${id}`),
 };
 
+// Cafe Details API calls
+export const cafeDetailsAPI = {
+  getByRestaurant: (restaurantId) => api.get(`/cafe-details/restaurant/${restaurantId}`),
+  getById: (id) => api.get(`/cafe-details/${id}`),
+  create: (data) => {
+    if (data instanceof FormData) {
+      return axios.post(`${API_BASE_URL}/cafe-details`, data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+    }
+    return api.post('/cafe-details', data);
+  },
+  update: (id, data) => {
+    if (data instanceof FormData) {
+      return axios.put(`${API_BASE_URL}/cafe-details/${id}`, data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+    }
+    return api.put(`/cafe-details/${id}`, data);
+  },
+  updateByRestaurant: (restaurantId, data) => {
+    if (data instanceof FormData) {
+      return axios.put(`${API_BASE_URL}/cafe-details/restaurant/${restaurantId}`, data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+    }
+    return api.put(`/cafe-details/restaurant/${restaurantId}`, data);
+  },
+  delete: (id) => api.delete(`/cafe-details/${id}`),
+};
+
 export default api;

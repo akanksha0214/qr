@@ -1,6 +1,6 @@
 import React from 'react';
 
-const PrintableReceipt = ({ order, restaurant, onClose }) => {
+const PrintableReceipt = ({ order, restaurant, cafeDetails, onClose }) => {
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleString('en-US', {
       year: 'numeric',
@@ -116,9 +116,18 @@ const PrintableReceipt = ({ order, restaurant, onClose }) => {
         {/* Printable Receipt Content */}
         <div className="print-receipt">
           <div className="receipt-header">
-            <div className="receipt-title">{restaurant.name}</div>
-            <div className="receipt-subtitle">{restaurant.address}</div>
-            <div className="receipt-subtitle">{restaurant.phone}</div>
+            {cafeDetails && cafeDetails.logo && (
+              <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+                <img 
+                  src={cafeDetails.logo} 
+                  alt="Cafe Logo" 
+                  style={{ maxWidth: '80px', maxHeight: '80px', objectFit: 'contain' }}
+                />
+              </div>
+            )}
+            <div className="receipt-title">{cafeDetails?.name || restaurant.name}</div>
+            <div className="receipt-subtitle">{cafeDetails?.address || restaurant.address}</div>
+            <div className="receipt-subtitle">{cafeDetails?.phone || restaurant.phone}</div>
           </div>
 
           <div className="order-info">
