@@ -1559,8 +1559,8 @@ const AdminDashboard = () => {
                   {showCafeDetailsForm && (
                     <div className="order-modal-overlay" onClick={() => setShowCafeDetailsForm(false)}>
                       <div className="order-modal" style={{ maxHeight: '100vh', overflowY: 'auto', borderRadius: '12px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }} onClick={(e) => e.stopPropagation()}>
-                        <div className="admin-card-header" style={{ background: 'white', borderRadius: '12px 12px 0 0', borderBottom: '1px solid #e5e7eb', padding: '1.5rem' }}>
-                          <h3 className="admin-card-title" style={{ color: '#111827', margin: 0, fontSize: '1.125rem', fontWeight: '600' }}>
+                        <div className="admin-card-header" style={{ background: '#0f172a', borderRadius: '8px 8px 0 0', borderBottom: 'none' }}>
+                          <h3 className="admin-card-title" style={{ color: '#fff', margin: 0, fontSize: '1.125rem', fontWeight: '600' }}>
                             Edit Cafe Details
                           </h3>
                         </div>
@@ -1664,7 +1664,7 @@ const AdminDashboard = () => {
                                 type="button"
                                 onClick={() => setShowCafeDetailsForm(false)}
                                 className="admin-btn admin-btn-secondary"
-                              style={{ marginRight: '1rem' }}
+                                style={{ marginRight: '1rem' }}
                               >
                                 Cancel
                               </button>
