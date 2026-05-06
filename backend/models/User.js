@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -6,6 +7,7 @@ const userSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+
   email: {
     type: String,
     required: true,
@@ -13,28 +15,35 @@ const userSchema = new mongoose.Schema({
     trim: true,
     lowercase: true
   },
+
   password: {
     type: String,
-    required: true
+    required: true,
+    minlength: 5
   },
+
   role: {
     type: String,
     enum: ['staff', 'manager', 'admin'],
     default: 'staff'
   },
+
   restaurantId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Restaurant',
     default: null
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
   }
+
+}, {
+  timestamps: true
 });
+
+
+
+
+// Compare password method
+userSchema.methods.comparePassword = async function(password) {
+  return await bcrypt.compare(password, this.password);
+};
 
 module.exports = mongoose.model('User', userSchema);

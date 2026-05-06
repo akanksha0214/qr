@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 
 // Get all users
@@ -28,12 +29,30 @@ router.get('/:id', async (req, res) => {
 // Create new user
 router.post('/', async (req, res) => {
   try {
-    const user = new User(req.body);
-    const savedUser = await user.save();
-    const populatedUser = await User.findById(savedUser._id).populate('restaurantId', 'name');
-    res.status(201).json(populatedUser);
+    console.log('Received user data:', req.body);
+    const { name, email, password, role, restaurantId } = req.body;
+    
+    console.log('Hashing password...');
+    const hashedPassword = await bcrypt.hash(password, 10);
+    console.log('Password hashed successfully');
+
+    console.log('Creating user with data:', { name, email, role, restaurantId });
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword, // ✅ save hash
+      role,
+      restaurantId,
+    });
+    console.log('User created successfully:', user);
+
+    res.status(201).json(user);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error('Error creating user:', error);
+    console.error('Error message:', error.message);
+    console.error('Error code:', error.code);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ message: "Registration failed", details: error.message });
   }
 });
 
