@@ -56,6 +56,8 @@ export const qrAPI = {
 
 // User API calls
 export const userAPI = {
+  login: (credentials) => api.post('/users/login', credentials),
+  logout: () => api.post('/users/logout'),
   getAll: () => api.get('/users'),
   getById: (id) => api.get(`/users/${id}`),
   create: (data) => api.post('/users', data),

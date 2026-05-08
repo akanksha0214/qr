@@ -4,10 +4,12 @@ import QRGenerator from '../components/QRGenerator';
 import PrintableReceipt from '../components/PrintableReceipt';
 import { io } from 'socket.io-client';
 import toast, { Toaster } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 import '../styles/AdminDashboard.css';
 import '../styles/NotificationPopup.css';
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('orders');
   const [restaurants, setRestaurants] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -46,6 +48,18 @@ const AdminDashboard = () => {
   const [showPrintReceipt, setShowPrintReceipt] = useState(null);
   const [socket, setSocket] = useState(null);
   const [notifications, setNotifications] = useState([]);
+
+  const handleLogout = async () => {
+    try {
+      await userAPI.logout();
+      localStorage.removeItem('user');
+      toast.success('Logged out successfully');
+      navigate('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error('Failed to logout');
+    }
+  };
 
   // Form states
   const [newRestaurant, setNewRestaurant] = useState({
@@ -505,6 +519,17 @@ const AdminDashboard = () => {
             <h1 className="admin-title">Admin Dashboard</h1>
             <p className="admin-subtitle">Manage restaurants, menus, and orders</p>
           </div>
+          <button
+            onClick={handleLogout}
+            className="logout-button"
+            title="Logout"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4 4m4-4H18M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01" />
+            </svg>
+            Logout
+          </button>
         </div>
       </header>
 

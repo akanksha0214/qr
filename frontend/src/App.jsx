@@ -5,17 +5,28 @@ import CheckoutPage from './pages/CheckoutPage';
 import OrderConfirmationPage from './pages/OrderConfirmationPage';
 import RestaurantDashboard from './pages/RestaurantDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import Login from './pages/Login';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
     <Router>
       <div className="App">
         <Routes>
+          <Route path="/" element={<Login />} />
           <Route path="/menu/:qrCodeId" element={<MenuPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/order-confirmation/:orderId" element={<OrderConfirmationPage />} />
-          <Route path="/dashboard" element={<RestaurantDashboard />} />
-          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <RestaurantDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin" element={
+            <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
           <Route path="/" element={
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
               <div className="text-center">
