@@ -100,29 +100,68 @@ const AdminDashboard = () => {
   };
 
   useEffect(() => {
-    fetchData();
+    initializeDashboard();
   }, []);
 
-  const fetchData = async () => {
+  const initializeDashboard = async () => {
     try {
-      const [restaurantsRes, ordersRes, usersRes] = await Promise.all([
-        restaurantAPI.getAll(),
-        selectedRestaurant ? orderAPI.getByRestaurant(selectedRestaurant._id) : Promise.resolve({ data: [] }),
+      // Get logged-in user from localStorage
+      const userStr = localStorage.getItem('user');
+      if (!userStr) {
+        navigate('/');
+        return;
+      }
+
+      const user = JSON.parse(userStr);
+      const userRestaurantId = user.restaurantId;
+
+      // Fetch all restaurants for Cafe Management tab
+      const restaurantsRes = await restaurantAPI.getAll();
+      setRestaurants(restaurantsRes.data);
+
+      // Find and set the user's restaurant for other tabs
+      const userRestaurant = restaurantsRes.data.find(r => r._id === userRestaurantId);
+
+      if (!userRestaurant) {
+        toast.error('Restaurant not found for your account');
+        navigate('/');
+        return;
+      }
+
+      // Set the user's restaurant as selected for Orders, Menu, etc.
+      setSelectedRestaurant(userRestaurant);
+
+      // Fetch data for the user's restaurant (Orders, Menu, Users)
+      const [ordersRes, menuRes, usersRes] = await Promise.all([
+        orderAPI.getByRestaurant(userRestaurantId),
+        menuAPI.getByRestaurant(userRestaurantId),
         userAPI.getAll()
       ]);
 
-      setRestaurants(restaurantsRes.data);
       setOrders(ordersRes.data);
+      setMenuItems(menuRes.data);
       setUsers(usersRes.data);
-
-      if (selectedRestaurant) {
-        const menuRes = await menuAPI.getByRestaurant(selectedRestaurant._id);
-        setMenuItems(menuRes.data);
-      }
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error initializing dashboard:', error);
+      toast.error('Failed to load dashboard');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchData = async () => {
+    if (!selectedRestaurant) return;
+    
+    try {
+      const [ordersRes, menuRes] = await Promise.all([
+        orderAPI.getByRestaurant(selectedRestaurant._id),
+        menuAPI.getByRestaurant(selectedRestaurant._id)
+      ]);
+
+      setOrders(ordersRes.data);
+      setMenuItems(menuRes.data);
+    } catch (error) {
+      console.error('Error fetching data:', error);
     }
   };
 
@@ -602,34 +641,24 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* Restaurant Selector */}
-      <div className="admin-main">
-        <div className="admin-card">
-          <div className="admin-card-header">
-            <h2 className="admin-card-title">Select Restaurant</h2>
-          </div>
-          <div className="admin-card-body">
-            <div className="admin-form">
-              <label className="admin-label">Restaurant</label>
-              <select
-                value={selectedRestaurant?._id || ''}
-                onChange={(e) => {
-                  const restaurant = restaurants.find(r => r._id === e.target.value);
-                  setSelectedRestaurant(restaurant);
-                }}
-                className="admin-select"
-              >
-                <option value="">Select a restaurant...</option>
-                {restaurants.map(restaurant => (
-                  <option key={restaurant._id} value={restaurant._id}>
-                    {restaurant.name}
-                  </option>
-                ))}
-              </select>
+      {/* Restaurant Selector - Hidden, auto-selected from user's restaurantId */}
+      {selectedRestaurant && (
+        <div className="admin-main">
+          <div className="admin-card">
+            <div className="admin-card-header">
+              <h2 className="admin-card-title">Current Restaurant</h2>
+            </div>
+            <div className="admin-card-body">
+              <div className="admin-form">
+                <label className="admin-label">Restaurant</label>
+                <div className="admin-select" style={{ backgroundColor: '#f3f4f6', padding: '0.75rem', borderRadius: '0.375rem' }}>
+                  {selectedRestaurant.name}
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Navigation Tabs */}
       <div className="admin-main">
