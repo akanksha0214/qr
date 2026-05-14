@@ -48,6 +48,20 @@ const AdminDashboard = () => {
   const [showPrintReceipt, setShowPrintReceipt] = useState(null);
   const [socket, setSocket] = useState(null);
   const [notifications, setNotifications] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showUserDropdown && !event.target.closest('.user-profile-container')) {
+        setShowUserDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showUserDropdown]);
 
   const handleLogout = async () => {
     try {
@@ -113,8 +127,9 @@ const AdminDashboard = () => {
       }
 
       const user = JSON.parse(userStr);
+      setCurrentUser(user); // Set current user state
       const userRestaurantId = user.restaurantId;
-
+      console.log(currentUser)
       // Fetch all restaurants for Cafe Management tab
       const restaurantsRes = await restaurantAPI.getAll();
       setRestaurants(restaurantsRes.data);
@@ -151,7 +166,7 @@ const AdminDashboard = () => {
 
   const fetchData = async () => {
     if (!selectedRestaurant) return;
-    
+
     try {
       const [ordersRes, menuRes] = await Promise.all([
         orderAPI.getByRestaurant(selectedRestaurant._id),
@@ -558,17 +573,62 @@ const AdminDashboard = () => {
             <h1 className="admin-title">Admin Dashboard</h1>
             <p className="admin-subtitle">Manage restaurants, menus, and orders</p>
           </div>
-          <button
-            onClick={handleLogout}
-            className="logout-button"
-            title="Logout"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4 4m4-4H18M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01" />
-            </svg>
-            Logout
-          </button>
+          <div className="admin-header-actions">
+            {currentUser && (
+              <div className="user-profile-container">
+                <div
+                  className="user-avatar-small"
+                  onClick={() => setShowUserDropdown(!showUserDropdown)}
+                >
+                  <div className="avatar-initial-small">
+                    {currentUser.name.charAt(0).toUpperCase()}
+                  </div>
+                </div>
+
+                {showUserDropdown && (
+                  <div className="user-dropdown">
+                    <div className="dropdown-header">
+                      <div className="dropdown-left">
+                        <div className="dropdown-name">
+                          {currentUser.name}
+                        </div>
+
+                        <span className="dropdown-email">
+                          {currentUser.email || "No email"}
+                        </span>
+                      </div>
+
+                      <small className="dropdown-role">
+                        {currentUser.role}
+                      </small>
+                    </div>
+
+                    <button
+                      onClick={handleLogout}
+                      className="dropdown-logout"
+                    >
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M17 16l4-4m0 0l-4 4m4-4H18M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -641,80 +701,56 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* Restaurant Selector - Hidden, auto-selected from user's restaurantId */}
-      {selectedRestaurant && (
-        <div className="admin-main">
-          <div className="admin-card">
-            <div className="admin-card-header">
-              <h2 className="admin-card-title">Current Restaurant</h2>
-            </div>
-            <div className="admin-card-body">
-              <div className="admin-form">
-                <label className="admin-label">Restaurant</label>
-                <div className="admin-select" style={{ backgroundColor: '#f3f4f6', padding: '0.75rem', borderRadius: '0.375rem' }}>
-                  {selectedRestaurant.name}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Navigation Tabs */}
       <div className="admin-main">
-        <div className="admin-card">
-          <div className="admin-card-header">
-            <h2 className="admin-card-title">Management</h2>
-          </div>
-          <div className="admin-card-body">
-            <nav className="admin-nav">
-              <button
-                onClick={() => setActiveTab('orders')}
-                className={`admin-tab ${activeTab === 'orders' ? 'active' : ''}`}
-              >
-                Orders
-                <span className="admin-tab-badge">
-                  {orders.filter(order => order.status === 'pending').length}
-                </span>
-              </button>
-              <button
-                onClick={() => setActiveTab('menu')}
-                className={`admin-tab ${activeTab === 'menu' ? 'active' : ''}`}
-              >
-                Menu
-                <span className="admin-tab-badge">
-                  {menuItems.length}
-                </span>
-              </button>
-              <button
-                onClick={() => setActiveTab('qr')}
-                className={`admin-tab ${activeTab === 'qr' ? 'active' : ''}`}
-              >
-                QR Codes
-              </button>
-              <button
-                onClick={() => setActiveTab('cafe')}
-                className={`admin-tab ${activeTab === 'cafe' ? 'active' : ''}`}
-              >
-                Cafe Management
-                <span className="admin-tab-badge">
-                  {restaurants.length}
-                </span>
-              </button>
-              <button
-                onClick={() => setActiveTab('cafe-details')}
-                className={`admin-tab ${activeTab === 'cafe-details' ? 'active' : ''}`}
-              >
-                Cafe Details
-              </button>
-              <button
-                onClick={() => setActiveTab('users')}
-                className={`admin-tab ${activeTab === 'users' ? 'active' : ''}`}
-              >
-                Users
-              </button>
-            </nav>
-          </div>
+        <div className="admin-card-body">
+          <nav className="admin-nav">
+            <button
+              onClick={() => setActiveTab('orders')}
+              className={`admin-tab ${activeTab === 'orders' ? 'active' : ''}`}
+            >
+              Orders
+              <span className="admin-tab-badge">
+                {orders.filter(order => order.status === 'pending').length}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab('menu')}
+              className={`admin-tab ${activeTab === 'menu' ? 'active' : ''}`}
+            >
+              Menu
+              <span className="admin-tab-badge">
+                {menuItems.length}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab('qr')}
+              className={`admin-tab ${activeTab === 'qr' ? 'active' : ''}`}
+            >
+              QR Codes
+            </button>
+            <button
+              onClick={() => setActiveTab('cafe')}
+              className={`admin-tab ${activeTab === 'cafe' ? 'active' : ''}`}
+            >
+              Cafe Management
+              <span className="admin-tab-badge">
+                {restaurants.length}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab('cafe-details')}
+              className={`admin-tab ${activeTab === 'cafe-details' ? 'active' : ''}`}
+            >
+              Cafe Details
+            </button>
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`admin-tab ${activeTab === 'users' ? 'active' : ''}`}
+            >
+              Users
+            </button>
+          </nav>
         </div>
       </div>
 

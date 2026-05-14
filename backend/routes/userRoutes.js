@@ -12,7 +12,6 @@ router.post('/login', async (req, res) => {
 
     //check for user
     const user = await User.findOne({ email });
-    console.log(user,"user")
     if (!user)
       return res.status(400).json({ msg: "User not found" });
 
@@ -48,7 +47,7 @@ router.post('/login', async (req, res) => {
     //all good->login
     res.json({
       success: true,
-      user: { id: user._id, name: user.name, role: user.role, restaurantId: user.restaurantId }
+      user: { id: user._id, name: user.name, role: user.role, restaurantId: user.restaurantId, email: user.email }
     });
 
   } catch (error) {
