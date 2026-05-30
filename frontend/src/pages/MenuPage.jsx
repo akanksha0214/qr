@@ -13,6 +13,7 @@ const MenuPage = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [cart, setCart] = useState([]);
   const [showOrderForm, setShowOrderForm] = useState(false);
+  const [showCartModal, setShowCartModal] = useState(false);
   const [customerName, setCustomerName] = useState('');
   const [tableNumber, setTableNumber] = useState('');
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
@@ -71,6 +72,17 @@ const MenuPage = () => {
       }
       return [...prevCart, { ...item, quantity: 1 }];
     });
+  };
+
+  const incrementQuantity = (item) => {
+    addToCart(item);
+  };
+
+  const decrementQuantity = (item) => {
+    const quantity = getQuantity(item._id);
+    if (quantity > 0) {
+      updateQuantity(item._id, quantity - 1);
+    }
   };
 
   const removeFromCart = (itemId) => {
@@ -183,7 +195,10 @@ const MenuPage = () => {
             <p>{restaurant?.description}</p>
           </div>
           <div className="relative">
-            <button className="cart-button">
+            <button 
+              className="cart-button"
+              onClick={() => setShowCartModal(true)}
+            >
               <span>Cart ({getTotalItems()})</span>
               <span>₹{getTotalPrice().toFixed(2)}</span>
             </button>
@@ -210,37 +225,60 @@ const MenuPage = () => {
 
       {/* Menu Items */}
       <main className="menu-items">
-        {filteredItems.map(item => (
-          <div key={item._id} className="menu-item-card">
-            {item.image ? (
-              <img
-                src={item.image}
-                alt={item.name}
-                className="menu-item-image"
-              />
-            ) : (
-              <div className="menu-item-image" />
-            )}
-            <div className="menu-item-content">
-              <div className="menu-item-header">
-                <h3 className="menu-item-name">{item.name}</h3>
-                <span className="menu-item-price">₹{item.price.toFixed(2)}</span>
-              </div>
-              <p className="menu-item-description">{item.description || 'No description'}</p>
-              {item.preparationTime && (
-                <p className="menu-item-prep-time">
-                  ⏱️ {item.preparationTime} min prep time
-                </p>
+        {filteredItems.map(item => {
+          const quantity = getQuantity(item._id);
+          return (
+            <div key={item._id} className="menu-item-card">
+              {item.image ? (
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  className="menu-item-image"
+                />
+              ) : (
+                <div className="menu-item-image" />
               )}
-              <button
-                onClick={() => addToCart(item)}
-                className="add-to-cart-button"
-              >
-                Add to Cart
-              </button>
+              <div className="menu-item-content">
+                <div className="menu-item-header">
+                  <h3 className="menu-item-name">{item.name}</h3>
+                  <span className="menu-item-price">₹{item.price.toFixed(2)}</span>
+                </div>
+                <p className="menu-item-description">{item.description || 'No description'}</p>
+                {item.preparationTime && (
+                  <p className="menu-item-prep-time">
+                    ⏱️ {item.preparationTime} min prep time
+                  </p>
+                )}
+                <div className="menu-item-footer">
+                  {quantity > 0 ? (
+                    <div className="quantity-controls-inline">
+                      <button
+                        onClick={() => decrementQuantity(item)}
+                        className="quantity-button-inline"
+                      >
+                        -
+                      </button>
+                      <span className="quantity-display-inline">{quantity}</span>
+                      <button
+                        onClick={() => incrementQuantity(item)}
+                        className="quantity-button-inline"
+                      >
+                        +
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => addToCart(item)}
+                      className="add-to-cart-button"
+                    >
+                      Add to Cart
+                    </button>
+                  )}
+                </div>
             </div>
           </div>
-        ))}
+          );
+        })}
 
         {filteredItems.length === 0 && (
           <div className="empty-state">
@@ -260,7 +298,7 @@ const MenuPage = () => {
         )}
       </main>
 
-      {/* Cart Sidebar */}
+      {/* Cart Sidebar - Desktop */}
       {cart.length > 0 && (
         <div className="cart-sidebar">
           <div className="cart-header">
@@ -308,6 +346,88 @@ const MenuPage = () => {
               <button 
                 onClick={handlePlaceOrder}
                 className="place-order-button"
+              >
+                Place Order
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Cart Footer */}
+      {cart.length > 0 && (
+        <div className="mobile-cart-footer">
+          <button 
+            className="mobile-cart-trigger"
+            onClick={() => setShowCartModal(true)}
+          >
+            <div className="mobile-cart-info">
+              <span className="mobile-cart-count">{getTotalItems()} items</span>
+              <span className="mobile-cart-total">₹{getTotalPrice().toFixed(2)}</span>
+            </div>
+            <span className="mobile-cart-arrow">▲</span>
+          </button>
+        </div>
+      )}
+
+      {/* Mobile Cart Modal */}
+      {showCartModal && (
+        <div className="mobile-cart-modal-overlay active" onClick={() => setShowCartModal(false)}>
+          <div className="mobile-cart-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="mobile-cart-header">
+              <h2>Your Order</h2>
+              <button 
+                className="mobile-cart-close"
+                onClick={() => setShowCartModal(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="mobile-cart-content">
+              {cart.map(item => (
+                <div key={item._id} className="mobile-cart-item">
+                  {item.image && (
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="mobile-cart-item-image"
+                    />
+                  )}
+                  <div className="mobile-cart-item-details">
+                    <div className="mobile-cart-item-info">
+                      <h4 className="mobile-cart-item-name">{item.name}</h4>
+                      <span className="mobile-cart-item-price">₹{item.price.toFixed(2)}</span>
+                    </div>
+                    <div className="mobile-cart-item-controls">
+                      <button
+                        onClick={() => updateQuantity(item._id, item.quantity - 1)}
+                        className="mobile-quantity-button"
+                      >
+                        -
+                      </button>
+                      <span className="mobile-quantity-display">{item.quantity}</span>
+                      <button
+                        onClick={() => updateQuantity(item._id, item.quantity + 1)}
+                        className="mobile-quantity-button"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mobile-cart-footer-actions">
+              <div className="mobile-cart-summary">
+                <span className="mobile-cart-total-label">Total:</span>
+                <span className="mobile-cart-total-amount">₹{getTotalPrice().toFixed(2)}</span>
+              </div>
+              <button 
+                onClick={() => {
+                  setShowCartModal(false);
+                  handlePlaceOrder();
+                }}
+                className="mobile-place-order-button"
               >
                 Place Order
               </button>
