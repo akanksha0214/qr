@@ -5,6 +5,8 @@
   min-height: 100vh;
   background: #f8fafc;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 /* ===== Header ===== */
@@ -17,7 +19,7 @@
 }
 
 .admin-header-content {
-  max-width: 1200px;
+  max-width: 100%;
   margin: 0 auto;
   padding: 1.25rem 1.5rem;
   display: flex;
@@ -302,9 +304,11 @@
 /* ===== Main Content ===== */
 .admin-main {
   width: 100%;
-  max-width: 1200px;
+  max-width: 100%;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: 1.5rem 1.5rem;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .admin-card {
@@ -372,7 +376,7 @@
 }
 
 .admin-select {
-  padding: 0.625rem 0.875rem;
+  padding: 0.625rem 2.5rem 0.625rem 0.875rem;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   font-size: 0.875rem;
@@ -380,6 +384,7 @@
   transition: all 0.2s ease;
   font-family: inherit;
   cursor: pointer;
+  min-width: 150px;
 }
 
 .admin-select:focus {
@@ -390,10 +395,10 @@
 
 /* ===== Buttons ===== */
 .admin-btn {
-  padding: 0.625rem 1rem;
+  padding: 0.5rem 0.75rem;
   border-radius: 6px;
   font-weight: 500;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   transition: all 0.2s ease;
   border: none;
   display: inline-flex;
@@ -401,6 +406,11 @@
   gap: 0.5rem;
   cursor: pointer;
   font-family: inherit;
+}
+
+.admin-btn-group {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .admin-btn-primary {
@@ -459,20 +469,31 @@
 .admin-table {
   background: white;
   border-radius: 0;
-  overflow: visible;
+  overflow: hidden;
   border: none;
   width: 100%;
+}
+
+.admin-table .overflow-x-auto {
+  overflow-x: auto;
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
 }
 
 .admin-table table {
   width: 100%;
   border-collapse: collapse;
+  max-width: 100%;
 }
 
 .admin-table-header {
   background: #fafbfc;
   padding: 1rem 1.5rem;
   border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .admin-table-row {
@@ -485,7 +506,7 @@
 }
 
 .admin-table-cell {
-  padding: 0.875rem 1.5rem;
+  padding: 0.75rem 1rem;
   font-size: 0.875rem;
   color: #475569;
 }

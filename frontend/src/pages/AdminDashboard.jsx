@@ -756,9 +756,8 @@ const AdminDashboard = () => {
                 </div>
               ) : (
                 <>
-                  <div className="admin-form" style={{ marginBottom: '1.5rem' }}>
-                    <div className="admin-form-group">
-                      <label className="admin-label">Filter Orders</label>
+                  <div className="admin-table">
+                    <div className="admin-table-header">
                       <select
                         value={orderFilter}
                         onChange={(e) => setOrderFilter(e.target.value)}
@@ -770,17 +769,9 @@ const AdminDashboard = () => {
                         <option value="ready">Ready</option>
                         <option value="completed">Completed</option>
                       </select>
-                    </div>
-                  </div>
-
-                  <div className="admin-table">
-                    <div className="admin-table-header">
-                      <div className="flex justify-between items-center">
-                        <span className="admin-card-title">Order Management</span>
-                        <span className="text-sm text-gray-500">
-                          {filteredOrders.length} {filteredOrders.length === 1 ? 'order' : 'orders'}
-                        </span>
-                      </div>
+                      <span className="text-sm text-gray-500">
+                        {filteredOrders.length} {filteredOrders.length === 1 ? 'order' : 'orders'}
+                      </span>
                     </div>
                     <div className="overflow-x-auto">
                       <table className="min-w-full">
@@ -789,6 +780,7 @@ const AdminDashboard = () => {
                             <th className="admin-table-cell admin-table-cell-header">Order #</th>
                             <th className="admin-table-cell admin-table-cell-header">Customer</th>
                             <th className="admin-table-cell admin-table-cell-header">Table</th>
+                            <th className="admin-table-cell admin-table-cell-header">Date/Time</th>
                             <th className="admin-table-cell admin-table-cell-header">Items</th>
                             <th className="admin-table-cell admin-table-cell-header">Total</th>
                             <th className="admin-table-cell admin-table-cell-header">Status</th>
@@ -801,6 +793,9 @@ const AdminDashboard = () => {
                               <td className="admin-table-cell">{order.orderNumber}</td>
                               <td className="admin-table-cell">{order.customerName}</td>
                               <td className="admin-table-cell">{order.tableNumber}</td>
+                              <td className="admin-table-cell">
+                                {order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A'}
+                              </td>
                               <td className="admin-table-cell">
                                 <div className="flex flex-col gap-1">
                                   {order.items.slice(0, 2).map((item, index) => (
@@ -822,7 +817,7 @@ const AdminDashboard = () => {
                                 </span>
                               </td>
                               <td className="admin-table-cell">
-                                <div className="flex" style={{ gap: '40px' }}>
+                                <div className="admin-btn-group">
                                   <button
                                     onClick={() => updateOrderStatus(order._id, 'preparing')}
                                     className="admin-btn admin-btn-secondary text-sm"
@@ -1380,7 +1375,7 @@ const AdminDashboard = () => {
                           <td className="admin-table-cell">{restaurant.address}</td>
                           <td className="admin-table-cell">{restaurant.description}</td>
                           <td className="admin-table-cell">
-                            <div className="flex gap-2">
+                            <div className="admin-btn-group">
                               <button
                                 onClick={() => {
                                   setEditingRestaurant(restaurant);
@@ -1434,45 +1429,47 @@ const AdminDashboard = () => {
 
               {/* Users List */}
               {users.length > 0 ? (
-                <div style={{ marginTop: '1.5rem' }}>
-                  <table className="admin-table" style={{ width: '100%' }}>
-                    <thead>
-                      <tr>
-                        <th className="admin-table-cell-header">Name</th>
-                        <th className="admin-table-cell-header">Email</th>
-                        <th className="admin-table-cell-header">Role</th>
-                        <th className="admin-table-cell-header">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {users
-                        .filter(user => {
-                          if (!selectedRestaurant) return true;
-                          const userRestaurantId = typeof user.restaurantId === 'object' ? user.restaurantId._id : user.restaurantId;
-                          return userRestaurantId === selectedRestaurant._id;
-                        })
-                        .map(user => (
-                          <tr key={user._id} className="admin-table-row">
-                            <td className="admin-table-cell">{user.name}</td>
-                            <td className="admin-table-cell">{user.email}</td>
-                            <td className="admin-table-cell">
-                              <span className={`status-badge ${user.role === 'admin' ? 'status-ready' : 'status-pending'}`}>
-                                {user.role}
-                              </span>
-                            </td>
-                            <td className="admin-table-cell">
-                              <button
-                                onClick={() => handleDeleteUser(user._id)}
-                                className="admin-btn admin-btn-danger"
-                                style={{ fontSize: '0.875rem', padding: '0.5rem 0.75rem' }}
-                              >
-                                Delete
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
+                <div className="admin-table" style={{ marginTop: '1.5rem' }}>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full">
+                      <thead>
+                        <tr>
+                          <th className="admin-table-cell admin-table-cell-header">Name</th>
+                          <th className="admin-table-cell admin-table-cell-header">Email</th>
+                          <th className="admin-table-cell admin-table-cell-header">Role</th>
+                          <th className="admin-table-cell admin-table-cell-header">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {users
+                          .filter(user => {
+                            if (!selectedRestaurant) return true;
+                            const userRestaurantId = typeof user.restaurantId === 'object' ? user.restaurantId._id : user.restaurantId;
+                            return userRestaurantId === selectedRestaurant._id;
+                          })
+                          .map(user => (
+                            <tr key={user._id} className="admin-table-row">
+                              <td className="admin-table-cell">{user.name}</td>
+                              <td className="admin-table-cell">{user.email}</td>
+                              <td className="admin-table-cell">
+                                <span className={`status-badge ${user.role === 'admin' ? 'status-ready' : 'status-pending'}`}>
+                                  {user.role}
+                                </span>
+                              </td>
+                              <td className="admin-table-cell">
+                                <button
+                                  onClick={() => handleDeleteUser(user._id)}
+                                  className="admin-btn admin-btn-danger"
+                                  style={{ fontSize: '0.875rem', padding: '0.5rem 0.75rem' }}
+                                >
+                                  Delete
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               ) : (
                 <div className="text-center py-12">
